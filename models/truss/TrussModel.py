@@ -18,8 +18,8 @@ class TrussModel:
         curr_time = time.time()
         vf_client = TrussVolumeFraction(self.sidenum, design_array)
         design_conn_array = vf_client.design_conn_array
-        # volume_fraction, feasibility_constraint, interaction_list = vf_client.evaluate(member_radii, member_length)
-        volume_fraction, feasibility_constraint, interaction_list = 0, 0, 0
+        volume_fraction, feasibility_constraint, interaction_list = vf_client.evaluate(member_radii, member_length)
+        # volume_fraction, feasibility_constraint, interaction_list = 0, 0, 0
 
         print("Time taken for volume fraction: ", time.time() - curr_time)
 
@@ -28,11 +28,11 @@ class TrussModel:
         v_stiff, h_stiff, stiff_ratio = TrussStiffness.evaluate(design_conn_array, self.sidenum, member_length, member_radii, y_modulus)
         print("Time taken for stiffness: ", time.time() - curr_time)
 
-        # print("Volume fraction: ", volume_fraction)
-        # print("Vertical stiffness: ", v_stiff)
-        # print("Horizontal stiffness: ", h_stiff)
-        # print("Stiffness ratio: ", stiff_ratio)
-        # print("Feasibility constraint: ", feasibility_constraint)
+        print("Volume fraction: ", volume_fraction)
+        print("Vertical stiffness: ", v_stiff)
+        print("Horizontal stiffness: ", h_stiff)
+        print("Stiffness ratio: ", stiff_ratio)
+        print("Feasibility constraint: ", feasibility_constraint)
 
         return v_stiff, h_stiff, stiff_ratio, volume_fraction, feasibility_constraint
 

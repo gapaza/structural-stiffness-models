@@ -12,7 +12,7 @@ import numpy as np
 
 from models.truss.TrussFeatures import TrussFeatures, intersect, calculate_angle, estimate_intersection_volume
 
-from models.truss.elements.c_geometry import voxelize_space
+from models.truss.elements.c_geometry import voxelize_space, generateNC
 
 # Calculate bit connection list
 bit_connection_list = []
@@ -82,8 +82,14 @@ class TrussVolumeFraction:
                     bits.append(idx)
         return bits
 
-
     def evaluate(self, member_radii=50e-6, side_length=100e-5):
+        sidelen = side_length / (self.sidenum - 1)
+        CA = np.array(self.design_conn_array)
+        NC = generateNC(sidelen, self.sidenum)
+        volume_fraction = voxelize_space(member_radii, sidelen, NC, CA, resolution=50)
+        return volume_fraction, 1.0, [0 for _ in range(config.num_vars)]
+
+    def evaluate2(self, member_radii=50e-6, side_length=100e-5):
 
 
 
