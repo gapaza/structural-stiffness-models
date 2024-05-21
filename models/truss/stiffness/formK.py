@@ -23,6 +23,10 @@ def formK(NC, CA, Avar, E):
         x2, y2 = NC[node2]
 
         L = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        if L == 0:
+            # print(f"Element {i} has zero length. Skipping...")
+            continue
+
         c = (x2 - x1) / L
         s = (y2 - y1) / L
         c2 = c ** 2

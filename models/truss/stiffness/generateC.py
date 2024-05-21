@@ -1,8 +1,12 @@
 import numpy as np
 
-from models.truss.formK import formK
+from models.truss.stiffness.formK import formK
 
 def generateC(sel, rvar, NC, CA, Avar, E, C, sidenum):
+    # print('NC:', NC)
+    # print('CA:', CA)
+
+
     uBasket = []
     FBasket = []
 
@@ -18,31 +22,33 @@ def generateC(sel, rvar, NC, CA, Avar, E, C, sidenum):
         strainvec[y] = 0.01
         strainvec[2] *= 2
 
-        e11, e22, e12 = strainvec
+        e11, e22, e12 = strainvec  # Strain components
 
-        if e11 != 0 or e22 != 0:
+        if e11 != 0 or e22 != 0:  # normal x strain, normal y strain
             K = formK(NC, CA, Avar, E)
-            u_r = []
-            F_q = []
-            qvec = []
-            rvec = []
+            u_r = []  # displacements at restrained nodes
+            F_q = []  # forces at free nodes
+            qvec = []  # indexes of free nodes
+            rvec = []  # indexes of restrained nodes
 
             for x in range(len(NC)):
-                ND = NC / sel
-                if ND[x, 0] in [0, 1] or ND[x, 1] in [0, 1]:
-                    if ND[x, 0] == 0:
+                ND = NC / sel  # normalized nodal coordinates
+                if ND[x, 0] in [0, 1] or ND[x, 1] in [0, 1]:  # check if node is on the boundary
+                    if ND[x, 0] == 0:  # check if node is on the left boundary
+                        u_r.append(0)
+                        rvec.append(2 * x)  # index of restrained node
+                    elif ND[x, 0] == 1:  # check if node is on the right boundary
+                        u_r.append(e11 * sel)  # displacement at restrained node
+                        rvec.append(2 * x)  # index of restrained node
+                        Fi_x.append(2 * x)  # index of force at restrained node
+                    elif ND[x, 1] == 0 and e22 != 0:  # check if node is on the bottom boundary and y strain is not zero
                         u_r.append(0)
                         rvec.append(2 * x)
-                    elif ND[x, 0] == 1:
-                        u_r.append(e11 * sel)
-                        rvec.append(2 * x)
-                        Fi_x.append(2 * x)
-                    elif ND[x, 1] == 0 and e22 != 0:
-                        u_r.append(0)
-                        rvec.append(2 * x)
-                    else:
-                        F_q.append(0)
-                        qvec.append(2 * x)
+                    else:  # node is on the top boundary
+                        F_q.append(0)  # force at free node
+                        qvec.append(2 * x)  # index of free node
+                        # Why is x being multiplied by 2?
+                        # Ans: x is the index of the node, and each node has 2 degrees of freedom (x and y)
 
                     if ND[x, 1] == 0:
                         u_r.append(0)
@@ -65,13 +71,13 @@ def generateC(sel, rvar, NC, CA, Avar, E, C, sidenum):
                     qvec.append(2 * x + 1)
 
             qrvec = qvec + rvec
-            newK = K[np.ix_(qrvec, qrvec)]
-            K_qq = newK[:len(qvec), :len(qvec)]
-            K_rq = newK[len(qvec):, :len(qvec)]
-            K_qr = newK[:len(qvec), len(qvec):]
-            K_rr = newK[len(qvec):, len(qvec):]
-            u_q = np.linalg.solve(K_qq, np.array(F_q) - K_qr @ np.array(u_r))
-            F_r = K_rq @ u_q + K_rr @ np.array(u_r)
+            newK = K[np.ix_(qrvec, qrvec)]  # Extract submatrix from K
+            K_qq = newK[:len(qvec), :len(qvec)]  # Extract submatrix from K_qq (top left)
+            K_rq = newK[len(qvec):, :len(qvec)]  # Extract submatrix from K_rq (bottom left)
+            K_qr = newK[:len(qvec), len(qvec):]  # Extract submatrix from K_qr (top right)
+            K_rr = newK[len(qvec):, len(qvec):]  # Extract submatrix from K_rr (bottom right)
+            u_q = np.linalg.solve(K_qq, np.array(F_q) - K_qr @ np.array(u_r)) # Solve for displacements at free nodes
+            F_r = K_rq @ u_q + K_rr @ np.array(u_r)  # Calculate forces at restrained nodes
             altu = np.concatenate((u_q, u_r))
             altF = np.concatenate((F_q, F_r))
             F = np.zeros(len(altF))
@@ -79,7 +85,7 @@ def generateC(sel, rvar, NC, CA, Avar, E, C, sidenum):
             for i, val in enumerate(qrvec):
                 F[val] = altF[i]
                 u[val] = altu[i]
-        else:
+        else:  # shear strain
             K = formK(NC, CA, Avar, E)
             u_r = []
             F_q = []
@@ -139,8 +145,7 @@ def generateC(sel, rvar, NC, CA, Avar, E, C, sidenum):
                 F[val] = altF[i]
                 u[val] = altu[i]
 
-        horizrads = [rvar[i] for i in range(len(CA)) if
-                     (CA[i, 0] + sidenum == CA[i, 1]) and (NC[CA[i, 0] - 1, 1] == sel)]
+        horizrads = [rvar[i] for i in range(len(CA)) if (CA[i, 0] + sidenum == CA[i, 1]) and (NC[CA[i, 0] - 1, 1] == sel)]
         vertrads = [rvar[i] for i in range(len(CA)) if (CA[i, 0] + 1 == CA[i, 1]) and (NC[CA[i, 0] - 1, 0] == sel)]
         horizmean = np.mean(horizrads)
         vertmean = np.mean(vertrads)

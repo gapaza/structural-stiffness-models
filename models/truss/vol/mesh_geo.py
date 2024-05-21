@@ -2,7 +2,7 @@ import config
 import requests
 import json
 import numpy as np
-from models.truss.generateNC import  generateNC
+from models.truss.stiffness.generateNC import  generateNC
 
 
 

@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.spatial import KDTree
-from models.truss.generateNC import generateNC
+from models.truss.stiffness.generateNC import generateNC
 import time
-import math
 
 import config
 

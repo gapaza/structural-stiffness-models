@@ -1,7 +1,6 @@
-from models.truss.generateC import generateC
-from models.truss.formK import formK
-from models.truss.generateNC import generateNC
-from models.truss.modifyAreas import modifyAreas
+from models.truss.stiffness.generateC import generateC
+from models.truss.stiffness.generateNC import generateNC
+from models.truss.stiffness.modifyAreas import modifyAreas
 import numpy as np
 
 from models.truss.TrussFeatures import TrussFeatures
@@ -31,22 +30,10 @@ class TrussStiffness:
             [7, 8], [7, 9],
             [8, 9]
         ])
+        member_radii = 250e-6  # Radii of truss elements
+        y_modulus = 1.8162e6
 
-        E = 1.8162e6  # Young's modulus
-        rvar = (250e-6) * np.ones(CA.shape[0])  # Radii of truss elements
-
-        # Calculate the stiffness tensor
-        C = self.get_stiffness_tensor(sidenum, sel, rvar, E, CA)
-
-        # Print the result
-        print("Stiffness Tensor (C):")
-        print(C)
-
-        c11_vstiff = C[0, 0]  # Vertical stiffness
-        c22_hstiff = C[1, 1]  # Horizontal stiffness
-
-        print('Vertical Stiffness: ', c11_vstiff)
-        print('Horizontal Stiffness: ', c22_hstiff)
+        c11, c22, stiffness_ratio = TrussStiffness.evaluate(CA, sidenum, sel, member_radii, y_modulus)
 
 
     @staticmethod
@@ -55,6 +42,23 @@ class TrussStiffness:
         rvar = member_radii * np.ones(CA.shape[0])  # Radii of truss elements
 
         C = TrussStiffness.get_stiffness_tensor(sidenum, sidelen, rvar, y_modulus, CA)
+        c11_vstiff = C[0, 0]  # Vertical stiffness
+        c22_hstiff = C[1, 1]  # Horizontal stiffness
+
+        # print('Vertical Stiffness: ', c11_vstiff)
+        # print('Horizontal Stiffness: ', c22_hstiff)
+
+        stiffness_ratio = 0
+        if c22_hstiff != 0:
+            stiffness_ratio = c11_vstiff / c22_hstiff
+        return c11_vstiff, c22_hstiff, stiffness_ratio
+
+    @staticmethod
+    def evaluate_decomp(CA_list, sidenum, sidelen, member_radii, y_modulus, new_nodes):
+        CA = np.array(CA_list)
+        rvar = member_radii * np.ones(CA.shape[0])  # Radii of truss elements
+        NC = np.array(new_nodes)
+        C = TrussStiffness.get_stiffness_tensor(sidenum, sidelen, rvar, y_modulus, CA, NC=NC)
         c11_vstiff = C[0, 0]  # Vertical stiffness
         c22_hstiff = C[1, 1]  # Horizontal stiffness
 
@@ -95,14 +99,18 @@ class TrussStiffness:
         print('Horizontal Stiffness: ', c22_hstiff)
 
 
-
+    # NOTE: sel MUST be the total length of the truss side
     @staticmethod
-    def get_stiffness_tensor(sidenum, sel, rvar, E, CA):
+    def get_stiffness_tensor(sidenum, sel, rvar, E, CA, NC=None):
 
         # Generate vector with nodal coordinates
-        NC = generateNC(sel, sidenum)
+        if NC is None:
+            NC = generateNC(sel, sidenum)
 
         # Calculate Avar & modify for edge members
+        # print('CA: ', CA)
+        # print('NC: ', NC)
+
         Avar = np.pi * (rvar ** 2)  # Cross-sectional areas of truss members
         Avar = modifyAreas(Avar, CA, NC, sidenum)
 
@@ -127,6 +135,13 @@ class TrussStiffness:
         # print('fBasket: ', fBasket)
 
         return C
+
+
+    @staticmethod
+    def decompose_for_intersections(CA, NC):
+        # Find overlaps
+
+        pass
 
 
 
