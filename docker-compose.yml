@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  pymesh:
+    image: pymesh/pymesh:latest
+    container_name: pymesh_container
+    volumes:
+      - ./app:/app
+    working_dir: /app
+    platform: linux/amd64
+    ports:
+      - "8483:8483"
+    command: >
+      sh -c "pip install flask tqdm && python app.py"
+      
+      
